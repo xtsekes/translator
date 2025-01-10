@@ -1,0 +1,21 @@
+meta {
+  name: Translate
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8080/translate
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Content-Type: multipart/form-data
+}
+
+body:multipart-form {
+  file: @file(C:\Users\ctsekes\Documents\Academy\translator\Technisch beheer BKWI v1.0.pdf)
+  targetLanguage: english
+  sourceLanguage: dutch
+}
