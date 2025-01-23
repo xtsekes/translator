@@ -22,7 +22,7 @@ public class OllamaChatModelConfig {
         return OllamaChatModel.builder()
                 .baseUrl(baseURL)
                 .modelName(modelName)
-                .temperature(0.7)
+                .temperature(0.0)
                 .logRequests(true)
                 .logResponses(true)
                 .timeout(Duration.ofMinutes(2))
