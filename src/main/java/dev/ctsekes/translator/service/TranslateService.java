@@ -12,6 +12,7 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -51,16 +52,38 @@ public class TranslateService {
     public byte[] translateDocx(MultipartFile file, String sourceLanguage, String targetLanguage) throws IOException {
         XWPFDocument document = new XWPFDocument(file.getInputStream());
 
-        for (XWPFParagraph paragraph : document.getParagraphs()) {
-            for (XWPFRun run : paragraph.getRuns()) {
-                String text = run.getText(0);
-                if (text != null && !text.isEmpty()) {
-                    StringBuilder translatedText = new StringBuilder();
-                    for (int i = 0; i < text.length(); i += 500) {
-                        String part = text.substring(i, Math.min(i + 500, text.length()));
-                        translatedText.append(translate(part, sourceLanguage, targetLanguage));
+        for (IBodyElement element : document.getBodyElements()) {
+            if (element instanceof XWPFParagraph) {
+                XWPFParagraph paragraph = (XWPFParagraph) element;
+                for (XWPFRun run : paragraph.getRuns()) {
+                    String text = run.getText(0);
+                    if (text != null && !text.isEmpty()) {
+                        StringBuilder translatedText = new StringBuilder();
+                        for (int i = 0; i < text.length(); i += 500) {
+                            String part = text.substring(i, Math.min(i + 500, text.length()));
+                            translatedText.append(translate(part, sourceLanguage, targetLanguage));
+                        }
+                        run.setText(translatedText.toString(), 0);
                     }
-                    run.setText(translatedText.toString(), 0);
+                }
+            } else if (element instanceof XWPFTable) {
+                XWPFTable table = (XWPFTable) element;
+                for (XWPFTableRow row : table.getRows()) {
+                    for (XWPFTableCell cell : row.getTableCells()) {
+                        for (XWPFParagraph paragraph : cell.getParagraphs()) {
+                            for (XWPFRun run : paragraph.getRuns()) {
+                                String text = run.getText(0);
+                                if (text != null && !text.isEmpty()) {
+                                    StringBuilder translatedText = new StringBuilder();
+                                    for (int i = 0; i < text.length(); i += 500) {
+                                        String part = text.substring(i, Math.min(i + 500, text.length()));
+                                        translatedText.append(translate(part, sourceLanguage, targetLanguage));
+                                    }
+                                    run.setText(translatedText.toString(), 0);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -92,14 +115,8 @@ public class TranslateService {
         if (StringUtils.isEmpty(text)) {
             return "";
         }
-        String prompt = "You are a professional " + sourceLanguage + "-to-" + targetLanguage + " translator " +
-                "with expertise in technical domains, including software architecture, microservices, CI/CD pipelines, and Kubernetes clusters." +
-                "Your task is to translate the following " + sourceLanguage + " text into " + targetLanguage +
-                " with the precision and quality expected of a finished deliverable." +
-                "Focus exclusively on translating the provided text. Do not add explanations, commentary, personal opinions, or assumptions about the content. " +
-                "Ensure the translation matches the tone and style of the original text and uses accurate technical terminology." +
-                "Dutch Text: '''" + text + "'''" +
-                "Output: Provide the English translation only, with no additional content.";
+
+        String prompt = "Translate the following text from " + sourceLanguage + " to " + targetLanguage + ": '''" + text + "'''";
 
         return assistant.translate(prompt);
     }
